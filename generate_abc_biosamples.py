@@ -16,8 +16,8 @@ CONFIG_TEMPLATE_FILE = "https://raw.githubusercontent.com/broadinstitute/ABC-Enh
 
 
 @click.command()
-@click.option("--dataset_dir", type=str)
-@click.option("--config_name", type=str, default="biosamples-config.tsv")
+@click.option("--dataset_dir", type=str, required=True)
+@click.option("--config_name", type=str, default="biosamples_config.tsv")
 def main(dataset_dir, config_name):
     clusters = os.listdir(dataset_dir)
     biosamples = pd.read_csv(CONFIG_TEMPLATE_FILE, sep="\t")
