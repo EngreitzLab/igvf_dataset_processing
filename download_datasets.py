@@ -1,6 +1,7 @@
 import os
 
 import click
+import numpy as np
 import pandas as pd
 import synapseclient
 
@@ -27,7 +28,17 @@ def download_cell_cluster_info(syn: synapseclient.Synapse, dataset_dir, row) -> 
     sorted_tagAlign_synapse = row["ATACtagAlignSorted"]
     tagAlign_idx_synapse = row["ATACtagAlignSortedIndex"]
     syn.get(sorted_tagAlign_synapse, downloadLocation=cluster_dir)
-    syn.get(tagAlign_idx_synapse, downloadLocation=cluster_dir)
+    if isinstance(tagAlign_idx_synapse, str) and tagAlign_idx_synapse.startswith("syn"):
+        # Some rows aren't indexed yet, but we still want to process them
+        syn.get(tagAlign_idx_synapse, downloadLocation=cluster_dir)
+
+
+def get_relevant_datasets(metadata_df: pd.DataFrame) -> pd.DataFrame:
+    return metadata_df[
+        (~metadata_df["ATACtagAlignSorted"].isna())
+        # & ~metadata_df["ATACtagAlignSortedIndex"].isna()
+        & (metadata_df["Species"] == "Human")
+    ]
 
 
 @click.command()
@@ -35,12 +46,12 @@ def download_cell_cluster_info(syn: synapseclient.Synapse, dataset_dir, row) -> 
 @click.option("--dataset_dir")
 def main(metadata_file, dataset_dir):
     metadata_df = pd.read_csv(metadata_file, sep="\t")
-    relevant_datasets = metadata_df[
-        ~metadata_df["ATACtagAlignSorted"].isna()
-        & ~metadata_df["ATACtagAlignSortedIndex"].isna()
-    ]
+
+    relevant_datasets = get_relevant_datasets(metadata_df)
+
     syn = synapseclient.Synapse()
     syn.login()
+    print(f"{len(relevant_datasets)} datasets to download")
     for i in range(len(relevant_datasets)):
         row = relevant_datasets.iloc[i]
         download_cell_cluster_info(syn, dataset_dir, row)
