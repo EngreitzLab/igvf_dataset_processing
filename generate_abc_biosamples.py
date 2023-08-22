@@ -23,6 +23,7 @@ def main(dataset_dir, config_name):
     biosamples = pd.read_csv(CONFIG_TEMPLATE_FILE, sep="\t")
     for i, cluster in enumerate(clusters):
         tagAlign = glob.glob(os.path.join(dataset_dir, cluster, "*.gz"))[0]
+        tagAlign = os.path.abspath(tagAlign)  # use full path
         biosample = {
             "biosample": cluster,
             "ATAC": tagAlign,
