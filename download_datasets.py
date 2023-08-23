@@ -1,9 +1,12 @@
+import concurrent.futures
 import os
+import shutil
 
 import click
-import numpy as np
 import pandas as pd
 import synapseclient
+
+NUM_THREADS = 20
 
 
 def tagalign_files_exist(dir) -> bool:
@@ -21,8 +24,11 @@ def download_cell_cluster_info(syn: synapseclient.Synapse, dataset_dir, row) -> 
     if os.path.exists(cluster_dir):
         if tagalign_files_exist(cluster_dir):
             return
-    else:
-        os.makedirs(cluster_dir)
+        else:
+            # redownload all files
+            print(f"Incomplete download. Removing existing dir: {cluster_dir}")
+            shutil.rmtree(cluster_dir)
+    os.makedirs(cluster_dir)
 
     print(f"Downloading cell cluster: {cluster}")
     sorted_tagAlign_synapse = row["ATACtagAlignSorted"]
@@ -52,10 +58,21 @@ def main(metadata_file, dataset_dir):
     syn = synapseclient.Synapse()
     syn.login()
     print(f"{len(relevant_datasets)} datasets to download")
-    for i in range(len(relevant_datasets)):
-        row = relevant_datasets.iloc[i]
-        download_cell_cluster_info(syn, dataset_dir, row)
-        print(f"Downloaded {i+1} / {len(relevant_datasets)} cell cluster datasets")
+    print(f"Using parallelization with {NUM_THREADS} threads")
+
+    # Download datasets in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
+        futures = {
+            executor.submit(download_cell_cluster_info, syn, dataset_dir, row)
+            for _, row in relevant_datasets.iterrows()
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            future.result()  # raises Exceptions from threads
+
+        concurrent.futures.wait(futures)
+
+    print("Downloaded all the datasets")
 
 
 if __name__ == "__main__":
