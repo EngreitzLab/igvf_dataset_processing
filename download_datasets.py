@@ -42,7 +42,7 @@ def download_cell_cluster_info(syn: synapseclient.Synapse, dataset_dir, row) -> 
 def get_relevant_datasets(metadata_df: pd.DataFrame) -> pd.DataFrame:
     return metadata_df[
         (~metadata_df["ATACtagAlignSorted"].isna())
-        # & ~metadata_df["ATACtagAlignSortedIndex"].isna()
+        & (~metadata_df["ATACtagAlignSortedIndex"].isna())
         & (metadata_df["Species"] == "Human")
     ]
 
