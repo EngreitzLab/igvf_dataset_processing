@@ -6,7 +6,7 @@ import pandas as pd
 
 HiC_INFO = {
     "HiC_dir": "/oak/stanford/groups/engreitz/Projects/ABC/HiC/avg_track2",
-    "HiC_type": "juicebox",
+    "HiC_type": "avg",
     "HiC_gamma": 1.024238616787792,
     "HiC_scale": 5.9594510043736655,
     "HiC_resolution": 5000,
