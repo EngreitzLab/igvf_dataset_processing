@@ -13,4 +13,4 @@ mkdir -p $DATASET_DIR
 
 python download_datasets.py --metadata_file $METADATA_FILE --dataset_dir $DATASET_DIR
 python generate_abc_biosamples.py --dataset_dir $DATASET_DIR
-
+python qc_datasets.py --dataset_dir $DATASET_DIR

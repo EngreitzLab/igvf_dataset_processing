@@ -70,8 +70,6 @@ def main(metadata_file, dataset_dir):
         for future in concurrent.futures.as_completed(futures):
             future.result()  # raises Exceptions from threads
 
-        concurrent.futures.wait(futures)
-
     print("Downloaded all the datasets")
 
 
