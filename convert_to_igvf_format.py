@@ -4,7 +4,9 @@ import click
 import pandas as pd
 import gzip
 import time
+import concurrent.futures
 
+NUM_THREADS = 5
 MACS_FILE = "Peaks/macs2_peaks.narrowPeak.sorted"
 ENHANCERLIST_FILE = "Neighborhoods/EnhancerList.txt"
 GENELIST_FILE = "Neighborhoods/GeneList.txt"
@@ -165,7 +167,7 @@ def convert_e2g_predictions(cluster, e2g_predictions_file, upload_folder, thresh
     comment_lines = [
         "#FileType=Edge:RegulatoryElementToGene",
         "#Code=https://github.com/EngreitzLab/e2g_pipeline",
-        "#Contact=Jesse Engreitz (engreitz@stanford.edu)",
+        "#Contact=Jesse Engreitz (engreitz@stanford.edu), Anthony Tan (atan5133@stanford.edu, Andreas Gschwind (andreas.gschwind@stanford.edu)",
         "#Genome=GRCh38",
         description,
         "#Directional=true",
@@ -179,6 +181,44 @@ def convert_e2g_predictions(cluster, e2g_predictions_file, upload_folder, thresh
         compressed=True,
     )
 
+def convert_cluster(cluster, cluster_dir, igvf_folder_name, threshold):
+    print(f"Processing {cluster}")
+    igvf_upload_folder = os.path.join(cluster_dir, igvf_folder_name)
+    os.makedirs(igvf_upload_folder, exist_ok=True)
+
+    completed_filename = os.path.join(igvf_upload_folder, ".completed")
+    if os.path.exists(completed_filename):
+        print(f"{cluster} has already been processed. Skipping...")
+        return
+
+    convert_macs(
+        cluster,
+        os.path.join(cluster_dir, MACS_FILE),
+        igvf_upload_folder,
+    )
+    convert_enhancerlist(
+        cluster,
+        os.path.join(cluster_dir, ENHANCERLIST_FILE),
+        igvf_upload_folder,
+    )
+    convert_genelist(
+        cluster,
+        os.path.join(cluster, cluster_dir, GENELIST_FILE),
+        igvf_upload_folder,
+    )
+    convert_e2g_predictions(
+        cluster,
+        os.path.join(cluster_dir, E2G_PREDICTIONS_FILE),
+        igvf_upload_folder,
+    )
+    convert_e2g_predictions(
+        cluster,
+        os.path.join(cluster_dir, E2G_PREDICTIONS_THRESHOLDED_FILE.format(threshold=threshold)),
+        igvf_upload_folder,
+        threshold=threshold
+    )
+    with open(completed_filename, 'w'):
+        pass
 
 @click.command()
 @click.option("--results_dir", type=str, required=True)
@@ -188,46 +228,15 @@ def main(results_dir, igvf_folder_name, threshold):
     prediction_files = glob.glob(os.path.join(results_dir, '*', E2G_PREDICTIONS_FILE))
     cell_clusters = [file.split("/")[-2] for file in prediction_files]
     start = time.time()
-    for i, cluster in enumerate(cell_clusters):
-        print(f"Processing {cluster}")
-        igvf_upload_folder = os.path.join(results_dir, cluster, igvf_folder_name)
-        os.makedirs(igvf_upload_folder, exist_ok=True)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
+        futures = set()
+        for cluster in cell_clusters:
+            cluster_dir = os.path.join(results_dir, cluster)
+            futures.add(executor.submit(convert_cluster, cluster, cluster_dir, igvf_folder_name, threshold))
 
-        completed_filename = os.path.join(igvf_upload_folder, ".completed")
-        if os.path.exists(completed_filename):
-            print(f"{cluster} has already been processed. Skipping...")
-            continue
-
-        convert_macs(
-            cluster,
-            os.path.join(results_dir, cluster, MACS_FILE),
-            igvf_upload_folder,
-        )
-        convert_enhancerlist(
-            cluster,
-            os.path.join(results_dir, cluster, ENHANCERLIST_FILE),
-            igvf_upload_folder,
-        )
-        convert_genelist(
-            cluster,
-            os.path.join(cluster, results_dir, cluster, GENELIST_FILE),
-            igvf_upload_folder,
-        )
-        convert_e2g_predictions(
-            cluster,
-            os.path.join(results_dir, cluster, E2G_PREDICTIONS_FILE),
-            igvf_upload_folder,
-        )
-        convert_e2g_predictions(
-            cluster,
-            os.path.join(results_dir, cluster, E2G_PREDICTIONS_THRESHOLDED_FILE.format(threshold=threshold)),
-            igvf_upload_folder,
-            threshold=threshold
-        )
-        with open(completed_filename, 'w'):
-            pass
-
-        print(f"Converted {i+1} / {len(cell_clusters)} clusters. Time taken: {int((time.time() - start)/60)} minutes")
+        for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            future.result()
+            print(f"Processed {i+1} / {len(futures)} datasets. Time taken: {int((time.time() - start)/60)} minutes")    
 
 
 if __name__ == "__main__":
