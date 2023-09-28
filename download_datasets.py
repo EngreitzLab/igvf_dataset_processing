@@ -39,21 +39,24 @@ def download_cell_cluster_info(syn: synapseclient.Synapse, dataset_dir, row) -> 
         syn.get(tagAlign_idx_synapse, downloadLocation=cluster_dir)
 
 
-def get_relevant_datasets(metadata_df: pd.DataFrame) -> pd.DataFrame:
+def get_relevant_datasets(metadata_df: pd.DataFrame, min_num_fragments:int) -> pd.DataFrame:
+    num_fragments = metadata_df["nCells"] * metadata_df["MeanATACFragmentsPerCell"]
     return metadata_df[
         (~metadata_df["ATACtagAlignSorted"].isna())
         & (~metadata_df["ATACtagAlignSortedIndex"].isna())
         & (metadata_df["Species"] == "Human")
+        & (num_fragments >= min_num_fragments)
     ]
 
 
 @click.command()
-@click.option("--metadata_file")
-@click.option("--dataset_dir")
-def main(metadata_file, dataset_dir):
+@click.option("--metadata_file", type=str)
+@click.option("--dataset_dir", type=str)
+@click.option("--min_num_fragments", type=int, default=1e6)
+def main(metadata_file, dataset_dir, min_num_fragments):
     metadata_df = pd.read_csv(metadata_file, sep="\t")
 
-    relevant_datasets = get_relevant_datasets(metadata_df)
+    relevant_datasets = get_relevant_datasets(metadata_df, min_num_fragments)
 
     syn = synapseclient.Synapse()
     syn.login()

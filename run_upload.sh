@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-RESULTS_DIR=/oak/stanford/groups/engreitz/Users/atan5133/outputs/
+RESULTS_DIR=/oak/stanford/groups/engreitz/Projects/IGVF-Y2AVE/outputs/
 IGVF_FOLDER_NAME=igvf
 THRESHOLD=.09
 SYNAPSE_UPLOAD_FOLDER=syn52408868

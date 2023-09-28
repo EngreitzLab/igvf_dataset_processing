@@ -21,9 +21,11 @@ CONFIG_TEMPLATE_FILE = "https://raw.githubusercontent.com/broadinstitute/ABC-Enh
 def main(dataset_dir, config_name):
     clusters = os.listdir(dataset_dir)
     biosamples = pd.read_csv(CONFIG_TEMPLATE_FILE, sep="\t")
-    for i, cluster in enumerate(clusters):
-        tagAlign = glob.glob(os.path.join(dataset_dir, cluster, "*.gz"))[0]
+
+    tagAlign_files = glob.glob(os.path.join(dataset_dir, "*", "*tagAlign*.gz"))
+    for i, tagAlign in enumerate(tagAlign_files):
         tagAlign = os.path.abspath(tagAlign)  # use full path
+        cluster = tagAlign.split("/")[-2]
         biosample = {
             "biosample": cluster,
             "ATAC": tagAlign,

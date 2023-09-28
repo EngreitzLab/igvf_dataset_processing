@@ -1,12 +1,12 @@
 import concurrent.futures
-import os
 import glob
+import os
 import tempfile
+
 import click
 import pandas as pd
 import synapseclient
-from synapseclient import Folder, File
-
+from synapseclient import File, Folder
 
 NUM_THREADS = 20
 MACS_FILE = "macs2_peaks.narrowPeak.sorted"
@@ -56,7 +56,7 @@ def main(results_dir, igvf_folder_name, project_synapse_id, threshold):
 
     with tempfile.NamedTemporaryFile(suffix=".tsv") as temp_file:
         pd.DataFrame(rows).to_csv(temp_file, sep="\t", index=False)
-        syn.store(File(temp_file.name, name="Metadata.tsv", parent=project_folder))
+        syn.store(File(temp_file.name, name="DatasetSummary.tsv", parent=project_folder))
     print("Uploaded all the datasets")
 
 if __name__ == "__main__":

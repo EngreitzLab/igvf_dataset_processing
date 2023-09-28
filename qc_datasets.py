@@ -37,11 +37,11 @@ def has_tbi(filename):
 @click.command()
 @click.option("--dataset_dir", type=str, required=True)
 def main(dataset_dir):
-    clusters = os.listdir(dataset_dir)
     non_sorted_files = []
     no_tbi_files = []
-    for cluster in clusters:
-        tagAlign = glob.glob(os.path.join(dataset_dir, cluster, "*.gz"))[0]
+
+    tagAlign_files = glob.glob(os.path.join(dataset_dir, "*", "*tagAlign*.gz"))
+    for tagAlign in tagAlign_files:
         tagAlign = os.path.abspath(tagAlign)  # use full path
         if not is_sorted(tagAlign):
             non_sorted_files.append(tagAlign)
